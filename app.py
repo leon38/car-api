@@ -1,18 +1,15 @@
 #!/usr/bin/env python
-import json
-
 from flask import Flask, request, Response
 from flask_restful import Resource, Api
 from flask_jsonpify import jsonify
-from flask_cors import CORS, cross_origin
+from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 import datetime
 
 app = Flask(__name__)
+app.config.from_object("config.DevelopmentConfig")
 api = Api(app)
 CORS(app)
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///car.db"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 
 
@@ -36,7 +33,8 @@ class Cars(Resource):
                   data['brand'],
                   data['color'],
                   data['license_plate'],
-                  datetime.datetime.strptime(data['technical_inspection'], "%d/%m/%Y"))
+                  datetime.datetime.strptime(data['technical_inspection'], "%d/%m/%Y"),
+                  data['tire_dimensions'])
         db.session.add(car)
         db.session.commit()
         return jsonify(car.serialize)
@@ -50,6 +48,7 @@ class Cars(Resource):
         car.color = data['color']
         car.license_plate = data['license_plate']
         car.technical_inspection = datetime.datetime.strptime(data['technical_inspection'], "%d/%m/%Y")
+        car.tire_dimensions = data['tire_dimensions']
         db.session.commit()
         return jsonify(car.serialize)
 
@@ -102,18 +101,19 @@ class Car(db.Model):
     color = db.Column(db.String(30), unique=False, nullable=False)
     license_plate = db.Column(db.String(9), unique=True, nullable=False)
     technical_inspection = db.Column(db.DateTime, unique=False, nullable=False)
+    tire_dimensions = db.Column(db.String(50), unique=False, nullable=True)
     repairments = db.relationship('Repairment', backref='car', lazy=True)
 
-    def __init__(self, name, brand, color, license_plate, technical_inspection):
+    def __init__(self, name, brand, color, license_plate, technical_inspection, tire_dimensions):
         self.name = name
         self.brand = brand
         self.color = color
         self.license_plate = license_plate
         self.technical_inspection = technical_inspection
+        self.tire_dimensions = tire_dimensions
 
     @property
     def serialize(self):
-        """Return object data in easily serializable format"""
         return {
             'id': self.id,
             'name': self.name,
@@ -121,6 +121,7 @@ class Car(db.Model):
             'color': self.color,
             'license_plate': self.license_plate,
             'technical_inspection': self.technical_inspection.strftime("%d/%m/%Y"),
+            'tire_dimensions': self.tire_dimensions,
             'repairments': [repairment.serialize for repairment in self.repairments]
         }
 
@@ -148,7 +149,6 @@ class Repairment(db.Model):
 
     @property
     def serialize(self):
-        """Return object data in easily serializable format"""
         return {
             'id': self.id,
             'type': self.type,
@@ -162,4 +162,4 @@ class Repairment(db.Model):
 
 
 if __name__ == '__main__':
-    app.run(port='5002')
+    app.run()
