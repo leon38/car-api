@@ -4,6 +4,7 @@ from flask_restful import Resource, Api
 from flask_jsonpify import jsonify
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
+from enum import Enum
 import datetime
 
 app = Flask(__name__)
@@ -94,6 +95,10 @@ class Repairments(Resource):
         db.session.commit()
         return Response({}, status=204, mimetype='application/json')
 
+    @app.route("/repairments-types", methods=["GET"])
+    def get_repairment_types():
+        return jsonify(list(TypeRepairment))
+
 class Car(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), unique=True, nullable=False)
@@ -102,7 +107,7 @@ class Car(db.Model):
     license_plate = db.Column(db.String(9), unique=True, nullable=False)
     technical_inspection = db.Column(db.DateTime, unique=False, nullable=False)
     tire_dimensions = db.Column(db.String(50), unique=False, nullable=True)
-    repairments = db.relationship('Repairment', backref='car', lazy=True)
+    repairments = db.relationship('Repairment', backref='car', order_by='asc(Repairment.date)', lazy=True)
 
     def __init__(self, name, brand, color, license_plate, technical_inspection, tire_dimensions):
         self.name = name
@@ -160,6 +165,12 @@ class Repairment(db.Model):
             'date': self.date.strftime("%d/%m/%Y")
         }
 
+
+class TypeRepairment(str, Enum):
+    REPARATION = "Réparation"
+    VIDANGE = "Vidange"
+    CARROSSERIE = "Carrosserie"
+    ENTRETIEN = "Entretien"
 
 if __name__ == '__main__':
     app.run()
