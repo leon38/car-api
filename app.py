@@ -60,6 +60,11 @@ class Repairments(Resource):
         repairments = Repairment.query.all()
         return jsonify([i.serialize for i in repairments])
 
+    @app.route("/cars/<int:car_id>/repairments", methods=["GET"])
+    def get_repairments_by_car(car_id):
+        repairments = Repairment.query.filter_by(car_id=car_id)
+        return jsonify([i.serialize for i in repairments])
+
     @app.route("/repairments", methods=["POST"])
     def add_repairment():
         data = request.get_json(force=True)
